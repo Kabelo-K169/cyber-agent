@@ -1,3 +1,7 @@
+from fastapi.testclient import TestClient
+from app.main import app
+
+client = TestClient(app)
 import pytest
 from datetime import datetime, timezone
 from fastapi.testclient import TestClient
@@ -49,19 +53,17 @@ def test_popia_form_attestation():
 
 
 def test_api_telemetry_endpoint():
-    client = TestClient(app)
     response = client.post(
-        "/api/v1/telemetry",
+        "/v1/telemetry/ingest",
         json={
-            "source_system": "siem_defender",
-            "source_event_id": "EVT-9981",
-            "raw_payload": {"ip": "192.168.1.50"},
-            "incident_type": "credential_dump",
+            "source_system": "siem",
+            "breach_nature": "credential_theft",
+            "compromised_entity_id": "192.168.1.50",
             "severity": "high",
         },
     )
     assert response.status_code == 201
     data = response.json()
-    assert data["status"] == "ingested"
+    assert data["incident_id"].startswith("INC-")
     assert "reasonable_grounds_at" in data
-    assert data["queued"] is True
+    assert data["cascade"]["status"] == "DISPATCHED_ZERO_DELAY"
